@@ -3,6 +3,9 @@
 What was broken in `Tao of Seneca v1.epub`, what was changed, and how to do the same
 to Volumes 2 and 3.
 
+All three volumes are now repaired; volumes 2 and 3 are covered in
+"What volumes 2 and 3 changed" near the end.
+
 Companion script: **`tao_of_seneca_fix.py`** (repo root). It performs every change
 below in one pass and was verified to reproduce `Tao of Seneca v4.epub`
 byte-for-byte from the untouched original.
@@ -257,7 +260,9 @@ close to verse to automate.
 
 ---
 
-## Doing Volumes 2 and 3
+## The recipe for a new volume
+
+This is how volumes 2 and 3 were done; follow it for anything else.
 
 ### Step 1 — check the conversion matches
 
@@ -314,24 +319,31 @@ EOF
 ### Step 3 — run it
 
 ```bash
-python3 tao_of_seneca_fix.py \
-    "vol2.epub" "Tao of Seneca vol2 fixed.epub" \
+python3 tao_of_seneca_fix.py "vol2.epub" "out.epub" \
+    --config volumes/volume-2/config.py \
     --title "The Tao of Seneca, Volume 2 of 3"
 ```
 
-It prints a count for each change. Sanity-check them against Volume 1's numbers below — a wildly different count
-usually means a header pattern is wrong.
+It prints a count for each change. Compare them against the three volumes already
+done — a wildly different count usually means a header pattern is wrong.
 
-| Count | Volume 1 |
-|---|---|
-| `headers_removed` | 253 |
-| `joined_at_header` + `joined_mid_sentence` + `joined_across_files` | 154 + 193 + 3 |
-| `hyphens_inline` + `joined_hyphen` | 155 + 16 |
-| `ornament_A_removed` | 69 |
-| `headings_tightened` | 68 |
-| `letter_headings_despaced` | 65 |
-| `footnotes_spaced` | 247 |
-| `words_unglued` | 220 |
+| Count | Vol 1 | Vol 2 | Vol 3 |
+|---|---|---|---|
+| `headers_removed` | 253 | 254 | 254 |
+| `joined_at_header` | 154 | 158 | 167 |
+| `joined_mid_sentence` | 193 | 117 | 168 |
+| `joined_across_files` | 3 | 1 | 3 |
+| `hyphens_inline` | 155 | 487 | 464 |
+| `joined_hyphen` | 16 | 5 | 17 |
+| `ornament_A_removed` | 69 | 31 | 36 |
+| `headings_tightened` | 68 | 28 | 32 |
+| `letter_headings_despaced` | 65 | 28 | 32 |
+| `footnotes_spaced` | 247 | 334 | 228 |
+| `words_unglued` | 220 | 142 | 131 |
+| `captions_moved` | 5 | 3 | 4 |
+
+Volumes 2 and 3 are hyphenated about three times as heavily as volume 1 — that gap
+is real, not a bug.
 
 ### Step 4 — verify
 
@@ -348,7 +360,65 @@ Three checks worth doing every time:
 
 ---
 
-## Still present in v6 (not fixed)
+## What volumes 2 and 3 changed
+
+Volume 1 was the case study. Running the same repair on the other two volumes
+turned up four things worth recording, three of which were bugs.
+
+### The two tables moved out of the script
+
+`HEADER_PATTERNS` and `GLUED` now live in `volumes/volume-N/config.py` and the
+script takes `--config`. Keeping volume 1's tables inline made it too easy to run
+them against another volume, which is exactly the thing that must not happen.
+
+### List glued words against a first pass, not the raw file
+
+Running `--list-glued` on the unrepaired EPUB fills the list with tokens like
+`ourable`, `oured` and `mence` — the two halves of words the converter split at a
+line break. They are not glued words, and the repair removes them anyway. Do a
+first pass with an empty `GLUED`, then list against that output. For volume 2 this
+cut the noise from 169 candidates to 161 real ones and made the review much faster.
+
+### Bug: camelCase was being missed below five characters
+
+The lister had a blanket `len(w) >= 5` floor, which silently skipped `NowI`. A case
+change inside a word is a high-precision signal at any length, so that path no
+longer has a floor; the dictionary-splitting path keeps one.
+
+### Bug: a relocated artwork credit ate a chapter heading
+
+The worst of the three, and the one the verification caught rather than a
+read-through. In volume 2:
+
+```html
+Artwork opposite by Nimit Malavia  <a id="C16"><b>L</b></a><b> E T T E R 8 0</b>
+```
+
+The sequence: the artwork credit gets relocated next to its image; the running
+header that sat just below it is then removed; the rejoiner sees a line that does
+not end a sentence (the credit) followed by the Letter 80 heading, and welds them.
+The heading then no longer *starts* with `L E T T E R`, so the despacing pass
+skipped it too — one bug hiding another.
+
+Fixed with two guards that should have been there from the start: never rejoin
+*into* a line carrying an `<a id=…>` anchor, and never treat a relocated artwork
+credit as the start of a sentence.
+
+### Volume 3's indexes
+
+Volume 3 carries the back-matter indexes, whose alphabetical dividers are single
+letters alone on a line. The rejoiner would weld `I` onto `Idomeneus (prominent in
+state affairs…)`. Guarded by refusing to join when the previous line is one
+character.
+
+### One word left deliberately broken
+
+`mea` appears three times in volume 2: twice glued (`saved mea lot of time`) and
+once as real Latin (`quid, mea cum pugnat sententia secum?`). The table matches
+whole tokens and cannot tell them apart, so it is not in the table — better one
+missed space than a corrupted quotation.
+
+## Still present (not fixed)
 
 - Glued words not in the reviewed table. The table covers what `--list-glued` and a
   read-through surfaced; a rarer one could survive. `cakeseller` and `sausageman`

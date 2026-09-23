@@ -15,95 +15,41 @@ Five conversion artifacts are undone, in order:
 Usage
   python3 fix_epub.py --list-headers "in.epub"     # step 1: see what repeats
   python3 fix_epub.py --list-glued   "in.epub"     # step 2: review glued words
-  python3 fix_epub.py "in.epub" "out.epub" --title "The Tao of Seneca, Volume 2 of 3"
+  python3 fix_epub.py "in.epub" "out.epub" --config volumes/volume-2/config.py \\
+      --title "The Tao of Seneca, Volume 2 of 3"
 
-Every volume needs --list-headers run FIRST: the running headers name the
-volume and its sections, so HEADER_PATTERNS below must be checked per volume.
+Both volume-specific tables live in a config file, not in this script:
+
+    volumes/volume-N/config.py    HEADER_PATTERNS  +  GLUED
+
+Never reuse another volume's config. The running headers name the volume and its
+sections, and the glued-word table is built from that volume's actual vocabulary.
+Run --list-headers and --list-glued first and review what they propose.
 """
 import re, html, os, sys, shutil, zipfile, tempfile, argparse
 from collections import Counter
 
 # ---------------------------------------------------------------- headers ---
 # Confirmed for Volume 1. Re-run --list-headers for other volumes and edit.
-HEADER_PATTERNS = [
-    r'\d+ THE TAO OF SENECA \| VOLUME \d+',
-    r'MORaL LETTERS TO LUCILIUS \d+',
-    r'THOUGHTS FROM MODERN STOICS \| .+? \d+',
-    r'PROFILES OF MODERN-Day STOICS FROM TOOLS OF TITaNS \d+',
-    r'\d+ BOOkS ON STOICISM \d+',
-    r'FOREwORD: HOw TO USE THIS BOOk \d+',
-]
+HEADER_PATTERNS, GLUED, GLUED_RE = [], {}, None
 
-# Words the converter ran together where the PDF had a thin space. HAND-REVIEWED
-# for Volume 1 -- run --list-glued on another volume and review its list before
-# trusting it: the same heuristics also flag Latin, Greek and proper nouns
-# ("Hecato" is not "He cato", "publicam" is not "public am").
-GLUED = {
-    'adistillation': 'a distillation', 'Agood': 'A good', 'Agreat': 'A great',
-    'Ahall': 'A hall', 'ALife': 'A Life', 'amabove': 'am above', 'amafraid': 'am afraid',
-    'amaware': 'am aware', 'amdoing': 'am doing', 'amglad': 'am glad',
-    'amgrieved': 'am grieved', 'amindeed': 'am indeed', 'amnot': 'am not',
-    'Amomentago': 'A moment ago', 'amready': 'am ready', 'amrunning': 'am running',
-    'amsituated': 'am situated', 'amstill': 'am still', 'amsure': 'am sure',
-    'Amust': 'A must', 'amwasting': 'am wasting', 'amwont': 'am wont',
-    'amworking': 'am working', 'Andmotion': 'And motion', 'AndnowI': 'And now I',
-    'Andwhen': 'And when', 'Andwhich': 'And which', 'Asingle': 'A single',
-    'Aspirit': 'A spirit', 'CDBaby': 'CD Baby', 'CDsold': 'CD sold', 'CDwas': 'CD was',
-    'CEOand': 'CEO and', 'commoncrowd': 'common crowd', 'commonphrase': 'common phrase',
-    'commonproperty': 'common property', 'commonstrategy': 'common strategy',
-    'Donot': 'Do not', 'Doyou': 'Do you', 'Godcannot': 'God cannot', 'Godhas': 'God has',
-    'Howare': 'How are', 'Howcomforting': 'How comforting', 'Howmany': 'How many',
-    'Howmuch': 'How much', 'Howotherwise': 'How otherwise', 'HOWTO': 'HOW TO',
-    'madea': 'made a', 'madeuse': 'made use', 'Manand': 'Man and', 'manfrom': 'man from',
-    'mannoteworthy': 'man noteworthy', 'manpass': 'man pass', 'manregards': 'man regards',
-    'manwhomade': 'man who made', 'manwould': 'man would', 'manyof': 'many of',
-    'mayhinder': 'may hinder', 'maynever': 'may never', 'maytend': 'may tend',
-    'meabout': 'me about', 'meaway': 'me away', 'mehad': 'me had', 'meintact': 'me intact',
-    'meinto': 'me into', 'melittle': 'me little', 'memore': 'me more',
-    'menbefore': 'men before', 'meneven': 'men even', 'menfrom': 'men from',
-    'Menhave': 'Men have', 'menhave': 'men have', 'menmeet': 'men meet',
-    'menpersuade': 'men persuade', 'menshould': 'men should', 'menshrink': 'men shrink',
-    'menwere': 'men were', 'menwhen': 'men when', 'menwho': 'men who',
-    'menwould': 'men would', 'meone': 'me one', 'methat': 'me that',
-    'methrough': 'me through', 'mewhyI': 'me why I', 'mewill': 'me will',
-    'mewith': 'me with', 'muchas': 'much as', 'muchtime': 'much time',
-    'myadvancing': 'my advancing', 'myassistance': 'my assistance',
-    'myconstitution': 'my constitution', 'mycore': 'my core', 'mycredit': 'my credit',
-    'mycustomary': 'my customary', 'mydanger': 'my danger', 'mydear': 'my dear',
-    'mydebt': 'my debt', 'mydrink': 'my drink', 'myears': 'my ears',
-    'myendurance': 'my endurance', 'myenthusiasm': 'my enthusiasm',
-    'myentire': 'my entire', 'Myfather': 'My father', 'myfault': 'my fault',
-    'myfeelings': 'my feelings', 'myfirst': 'my first', 'myfood': 'my food',
-    'myfriend': 'my friend', 'myGod': 'my God', 'mygood': 'my good', 'mygreed': 'my greed',
-    'myhand': 'my hand', 'myhapless': 'my hapless', 'myhead': 'my head',
-    'myintent': 'my intent', 'mylife': 'my life', 'myLucilius': 'my Lucilius',
-    'mymind': 'my mind', 'myobject': 'my object', 'myold': 'my old', 'myown': 'my own',
-    'mypart': 'my part', 'mypilot': 'my pilot', 'myplans': 'my plans',
-    'myprofession': 'my profession', 'myreading': 'my reading', 'myseal': 'my seal',
-    'myseat': 'my seat', 'mystomach': 'my stomach', 'mytrouble': 'my trouble',
-    'myturnaround': 'my turnaround', 'myvices': 'my vices', 'NFLin': 'NFL in',
-    'Nowthe': 'Now the', 'Nowthere': 'Now there', 'Nowwhat': 'Now what',
-    'OnJuly': 'On July', 'Onthe': 'On the', 'onyou': 'on you', 'Ourfriend': 'Our friend',
-    'Owhen': 'O when', 'ownperson': 'own person', 'summonyou': 'summon you',
-    'TEDconferences': 'TED conferences', 'Wasthat': 'Was that', 'Waythe': 'Way the',
-    'Weare': 'We are', 'Weblush': 'We blush', 'Wecannot': 'We cannot', 'Wehave': 'We have',
-    'Wemust': 'We must', 'Weought': 'We ought', 'Wereally': 'We really',
-    'Weshall': 'We shall', 'Weshould': 'We should', 'Wewould': 'We would',
-    'WhenI': 'When I', 'Whenpersons': 'When persons', 'Whenyou': 'When you',
-    'whocomefrom': 'who come from', 'whois': 'who is', 'whomI': 'whom I',
-    'whomit': 'whom it', 'whomno': 'whom no', 'whomstarvation': 'whom starvation',
-    'whomVergil': 'whom Vergil', 'whomwe': 'whom we', 'whomyou': 'whom you',
-    'whostands': 'who stands', 'Whyare': 'Why are', 'Whydo': 'Why do',
-    'Whyshould': 'Why should', 'Whythen': 'Why then', 'Whywait': 'Why wait',
-    'Youare': 'You are', 'Youcan': 'You can', 'youstill': 'you still'
-}
+def load_config(path):
+    """Load a volume's HEADER_PATTERNS and GLUED table."""
+    global HEADER_PATTERNS, GLUED, GLUED_RE
+    ns = {}
+    with open(path, encoding="utf-8") as fh:
+        exec(compile(fh.read(), path, "exec"), ns)
+    HEADER_PATTERNS = ns.get("HEADER_PATTERNS", [])
+    GLUED = ns.get("GLUED", {})
+    GLUED_RE = re.compile(r"(?<![A-Za-z])("
+                          + "|".join(sorted(map(re.escape, GLUED), key=len, reverse=True))
+                          + r")(?![A-Za-z])") if GLUED else None
+    return path
 
 TOK     = re.compile(r'(<[^>]*>)')        # odd split indices are tags
 LETTER  = r'[^\W\d_]'
 INLINE_HYPH = re.compile(rf'({LETTER})\s+-\s+({LETTER})')
 FOOTNOTE    = re.compile(r'(?<![\s\[])(\[\d+\])')
-GLUED_RE    = re.compile(r'(?<![A-Za-z])(' + '|'.join(sorted(GLUED, key=len, reverse=True))
-                         + r')(?![A-Za-z])') if GLUED else None
 CAPTION = re.compile(r'^Artwork opposite by ')
 # "<a id="C23"><b>L</b></a><b> E T T E R 2 1</b>" -> the anchor stays on the L,
 # the rest loses its letter spacing: "LETTER 21".
@@ -208,6 +154,9 @@ def strip_headers(body, hdr, stats):
         while n < len(body) and is_blank(body[n]):
             n += 1
         if (p >= 0 and n < len(body) and '<img' not in out[p] and '<img' not in body[n]
+                and len(plain(out[p])) > 1          # an index letter divider stands alone
+                and not CAPTION.match(plain(out[p]))     # a relocated artwork credit
+                and not re.search(r'<a\s+id=', body[n])  # never join into a heading
                 and not sentence_final(plain(out[p]))):
             out[p] = merge(out[p], body[n], stats)
             del out[p + 1:]
@@ -247,8 +196,11 @@ def joinable(a, b):
     pa, pb = plain(a), plain(b)
     if not pa or not pb:                        return False
     if '<img' in a or '<img' in b:              return False
-    if re.search(r'<a\s+id=', a):               return False   # a chapter heading
+    if re.search(r'<a\s+id=', a):               return False   # prev is a heading
+    if re.search(r'<a\s+id=', b):               return False   # next is a heading
+    if CAPTION.match(pa):                       return False   # artwork credit line
     if sentence_final(pa):                      return False
+    if len(pa) <= 2:                            return False   # index divider / stray cap
     if not pb[0].islower():                     return False
     if len(pa) < 45 and '  ' not in pa and '<b>' not in a:
         return False        # a standalone short line = displayed verse, not prose
@@ -364,14 +316,17 @@ def list_glued(root):
         return None
     found = {}
     for w, n in node.items():
-        if len(w) < 5 or '\u2019' in w or "'" in w:
+        if '\u2019' in w or "'" in w:
             continue
-        if m := re.match(r'^([A-Z]{2,})([a-z].+)$', w):       # NFLin, CEOand
+        # a case change inside a word is high-precision, so no length floor here
+        if m := re.match(r'^([A-Z]{2,})([a-z].+)$', w):       # NFLin, CEOand, CUNYsalary
             found[w] = (f'{m.group(1)} {m.group(2)}', n); continue
         if w.lower() in D:
             continue
-        if re.search(r'[a-z][A-Z]', w):                        # myGod, whomI
+        if re.search(r'[a-z][A-Z]', w):                        # myGod, whomI, NowI
             found[w] = (re.sub(r'([a-z])([A-Z])', r'\1 \2', w), n); continue
+        if len(w) < 5:            # the dictionary-split path needs the length floor
+            continue
         if c := cut(w):
             found[w] = (' '.join(c), n)
     print(f'{len(found)} tokens look glued. REVIEW EVERY LINE before adding to GLUED --')
@@ -442,6 +397,7 @@ def main():
     ap.add_argument('--title')
     ap.add_argument('--list-headers', action='store_true')
     ap.add_argument('--list-glued', action='store_true')
+    ap.add_argument('--config', help="volume config with HEADER_PATTERNS and GLUED")
     a = ap.parse_args()
 
     tmp = tempfile.mkdtemp()
@@ -451,11 +407,16 @@ def main():
         if a.list_headers:
             list_headers(tmp)
             return
+        if a.config:
+            load_config(a.config)
         if a.list_glued:
             list_glued(tmp)
             return
         if not a.dest:
             sys.exit('need a destination .epub (or pass --list-headers / --list-glued)')
+        if not a.config:
+            sys.exit('need --config volumes/volume-N/config.py -- the header patterns '
+                     'and glued-word table are specific to each volume')
         stats = Counter()
         run(tmp, a.title, stats)
         repack(tmp, a.dest)

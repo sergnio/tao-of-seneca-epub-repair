@@ -20,18 +20,18 @@ A representative sample — the page header dropped into the middle of a sentenc
 >
 > it may be a test of yourself instead of a mere hobby.
 
-Eight artifact classes in all, fixed in one pass:
+Eight artifact classes in all, fixed in one pass. All three volumes are repaired:
 
-| # | Artifact | Volume 1 count |
-|---|---|---|
-| 1 | Running page headers dropped mid-sentence | 253 removed |
-| 2 | Paragraphs split mid-sentence at page/column breaks | 350 rejoined |
-| 3 | Words split by a hyphen at a line break (`immu -  nity`) | 171 healed |
-| 4 | Stray ornament `A` paragraph after every heading | 69 removed |
-| 5 | Letter-spaced headings (`L E T T E R 2 1`) | 65 collapsed |
-| 6 | Footnote markers jammed against the word (`our[2]`) | 247 spaced |
-| 7 | Words run together by a lost thin space (`Whydo`, `NFLin`) | 220 split |
-| 8 | Heading spacing, and a `<dc:title>` holding a Windows build path | 68 + title |
+| # | Artifact | Vol 1 | Vol 2 | Vol 3 |
+|---|---|---|---|---|
+| 1 | Running page headers dropped mid-sentence | 253 | 254 | 254 |
+| 2 | Paragraphs split mid-sentence at page/column breaks | 350 | 276 | 338 |
+| 3 | Words split by a hyphen at a line break (`immu -  nity`) | 171 | 492 | 481 |
+| 4 | Stray ornament `A` paragraph after every heading | 69 | 31 | 36 |
+| 5 | Letter-spaced headings (`L E T T E R 2 1`) | 65 | 28 | 32 |
+| 6 | Footnote markers jammed against the word (`our[2]`) | 247 | 334 | 228 |
+| 7 | Words run together by a lost thin space (`Whydo`, `NFLin`) | 220 | 142 | 131 |
+| 8 | Heading spacing | 68 | 28 | 32 |
 
 `FIXES.md` documents each one, the rules used to decide when to rejoin text, and
 what was deliberately left alone and why.
@@ -39,17 +39,22 @@ what was deliberately left alone and why.
 ## Usage
 
 ```bash
-python3 tao_of_seneca_fix.py --list-headers "in.epub"   # per-volume: running headers
-python3 tao_of_seneca_fix.py --list-glued   "in.epub"   # per-volume: glued words
-python3 tao_of_seneca_fix.py "in.epub" "out.epub" --title "The Tao of Seneca, Volume 1 of 3"
+python3 tao_of_seneca_fix.py --list-headers "in.epub"            # per-volume: running headers
+python3 tao_of_seneca_fix.py --list-glued   "in.epub" --config … # per-volume: glued words
+
+python3 tao_of_seneca_fix.py "in.epub" "out.epub" \
+    --config volumes/volume-1/config.py \
+    --title "The Tao of Seneca, Volume 1 of 3"
 ```
+
+`--config` is required and volume-specific: it carries that volume's running-header
+patterns and its hand-reviewed glued-word table. See `volumes/README.md`.
 
 No dependencies beyond the Python 3 standard library. `--list-glued` reads
 `/usr/share/dict/words` to screen out real words.
 
-The two `--list-*` steps are not optional for a new volume: `HEADER_PATTERNS` and
-`GLUED` are both volume-specific, and `GLUED` in particular needs a human to review
-every line. See `volumes/README.md`.
+The two `--list-*` steps are not optional for a new volume, and `GLUED` in
+particular needs a human to review every line.
 
 ## Verifying a run
 
@@ -74,7 +79,8 @@ spaces. Those assumptions are what make the paragraph rejoining tractable.
 ```
 tao_of_seneca_fix.py                              the repair, all eight passes
 FIXES.md                                          what was wrong and how each fix decides
-volumes/volume-1/tao-of-seneca-vol1-repaired.epub
+volumes/volume-N/config.py                        that volume's headers + glued words
+volumes/volume-N/tao-of-seneca-volN-repaired.epub
 volumes/README.md                                 per-volume notes and status
 LICENSE                                           MIT, scoped to the code and docs
 NOTICE                                            credit and rights for the book itself
@@ -84,11 +90,11 @@ NOTICE                                            credit and rights for the book
 
 The script and the documentation are MIT — use them for anything.
 
-**The MIT license does not cover the ebook under `volumes/`.** That is Tim Ferriss's
+**The MIT license does not cover the ebooks under `volumes/`.** That is Tim Ferriss's
 book, not mine, and I have no rights to grant in it. See `NOTICE` for the full
 statement. Short version: all credit for the book goes to Tim Ferriss and its
 contributors, the Gummere translation of Seneca underneath it is public domain, and
-the repaired file is here because his download page says sharing is encouraged.
+the repaired files are here because his download page says sharing is encouraged.
 
 Please get the book from [his page](https://tim.blog/2017/07/06/tao-of-seneca/)
 rather than from here. It is free, and going to the source supports the person who
