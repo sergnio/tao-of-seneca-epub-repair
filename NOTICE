@@ -12,8 +12,8 @@ gives it away for free:
 All credit for the book belongs to him and to its contributors — the foreword,
 the commissioned interviews with modern Stoics, the artwork and the design are
 theirs, not mine. The book is Copyright (c) Tim Ferriss, all rights reserved.
-His download page states "Sharing is encouraged", and the repaired EPUB under
-volumes/ is shared here on that basis.
+His download page states "Sharing is encouraged", and the repaired EPUBs under
+volumes/ are shared here on that basis.
 
 I claim no ownership of the book and grant no rights to it. The MIT license in
 this repository covers only the repair script and the notes around it. If you
@@ -33,8 +33,8 @@ translation by Richard Mott Gummere, published by Loeb Classical Library
 What is mine
 ------------
 
-Only `tao_of_seneca_fix.py` and the documentation describing it. The repaired
-EPUB is a derivative of Tim's book: the same words he published, with the
+Only `tao_of_seneca_fix.py`, the per-volume configs, and the documentation
+describing them. Each repaired EPUB is a derivative of Tim's book: the same words he published, with the
 artifacts of a bad PDF-to-EPUB conversion removed. No text was added, removed
 or rewritten — a whitespace-stripped comparison against the unrepaired file
 comes out character-identical.

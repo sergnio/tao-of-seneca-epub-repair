@@ -60,9 +60,10 @@ particular needs a human to review every line.
 
 The check that caught real bugs during development: strip all whitespace from the
 text before and after, apply the same de-hyphenation to both, and compare. Repairing
-this conversion only ever removes junk, joins halves, or inserts a space — so the
-two must come out character-identical. For volume 1 that is 431,617 characters
-either way.
+this conversion only ever removes junk, joins halves, or inserts a space — so with
+the deleted junk (running headers, ornament `A`s) and the relocated artwork credits
+excluded from both sides, the two come out character-identical: **431,471 /
+418,983 / 409,902** for volumes 1, 2 and 3.
 
 Then confirm the XHTML still parses, and that `mimetype` is the first zip entry and
 stored uncompressed (the script handles the latter).

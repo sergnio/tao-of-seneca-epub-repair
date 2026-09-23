@@ -13,9 +13,14 @@ Five conversion artifacts are undone, in order:
   8. a garbage <dc:title> (a Windows build path)
 
 Usage
-  python3 fix_epub.py --list-headers "in.epub"     # step 1: see what repeats
-  python3 fix_epub.py --list-glued   "in.epub"     # step 2: review glued words
-  python3 fix_epub.py "in.epub" "out.epub" --config volumes/volume-2/config.py \\
+  python3 tao_of_seneca_fix.py --list-headers "in.epub"
+
+  # list glued words against a FIRST PASS, not the raw file, or half the
+  # candidates are hyphenation fragments this script removes anyway
+  python3 tao_of_seneca_fix.py "in.epub" pass1.epub --config volumes/volume-2/config.py
+  python3 tao_of_seneca_fix.py --list-glued pass1.epub --config volumes/volume-2/config.py
+
+  python3 tao_of_seneca_fix.py "in.epub" "out.epub" --config volumes/volume-2/config.py \\
       --title "The Tao of Seneca, Volume 2 of 3"
 
 Both volume-specific tables live in a config file, not in this script:

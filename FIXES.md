@@ -1,23 +1,21 @@
 # Tao of Seneca — EPUB repair notes
 
-What was broken in `Tao of Seneca v1.epub`, what was changed, and how to do the same
-to Volumes 2 and 3.
+What was broken in the PDF-to-EPUB conversion of *The Tao of Seneca*, and how each
+fix decides what to do. Volume 1 is the worked example throughout; what differed for
+volumes 2 and 3 is in "What volumes 2 and 3 changed" near the end.
 
-All three volumes are now repaired; volumes 2 and 3 are covered in
-"What volumes 2 and 3 changed" near the end.
-
-Companion script: **`tao_of_seneca_fix.py`** (repo root). It performs every change
-below in one pass and was verified to reproduce `Tao of Seneca v4.epub`
-byte-for-byte from the untouched original.
+Companion script: **`tao_of_seneca_fix.py`** (repo root), which performs every change
+below in one pass, driven by `volumes/volume-N/config.py`.
 
 ---
 
 ## The source of all of it
 
-The EPUB was made by **Lighten PDF Converter 5.2.0** from the print PDF. The layout:
+The EPUBs were made by **CleverPDF**'s online converter (which runs the Lighten
+PDF Converter 5.2.0 engine) from Tim's print PDFs. The layout:
 
 ```
-OEBPS/Text/1.html … 7.html      the whole book, 7 files
+OEBPS/Text/1.html … N.html      the whole book, 7 files in vol 1, 6 in vols 2-3
 OEBPS/content.opf, toc.ncx
 OEBPS/Images/*.jpg
 ```
@@ -40,16 +38,9 @@ Two structural facts that everything below depends on:
 
 ---
 
-## Versions produced
-
-| File | Contains |
-|---|---|
-| `Tao of Seneca v1.epub.backup` | untouched original |
-| `Tao of Seneca v2.epub` | running headers removed |
-| `Tao of Seneca v3.epub` | + de-hyphenation and mid-sentence rejoining |
-| `Tao of Seneca v4.epub` | + ornament removal, heading spacing, real title |
-| `Tao of Seneca v5.epub` | + `L E T T E R 2 1` collapsed to `LETTER 21` |
-| `Tao of Seneca v6.epub` | + footnote markers spaced, glued words split |
+The eight fixes below were originally developed one at a time against volume 1, but
+the script now applies all of them in a single pass; there are no intermediate
+versions to keep.
 
 ---
 
@@ -238,6 +229,12 @@ prose and is much harder to spot later.
 | previous is under 45 chars, has no internal double space, and is not bold | a displayed verse line (`Lands and cities are left astern,`) |
 | next is under 5 chars | a verse connector (the bare `or` between two Vergil lines) |
 | previous is entirely bold and next has no bold | a title followed by its byline |
+| next line has `<a id=…>` | never join *into* a chapter heading |
+| previous is a relocated `Artwork opposite by …` credit | it is not a sentence that was cut off |
+| previous is a single character | an index divider letter (`I` above `Idomeneus …`) |
+
+The last three were added while doing volumes 2 and 3, each after it broke
+something real — see "What volumes 2 and 3 changed".
 
 At a removed **header** rule 1 alone is used (rule 2 adds nothing there — the two
 signals agreed on all 253).
@@ -283,7 +280,7 @@ EPUB has the Lighten layout (`OEBPS/Text/N.html`).
 
 ### Step 2 — set the header patterns and review the glued words
 
-Edit `HEADER_PATTERNS` at the top of the script. Expect these to change per volume:
+Edit `HEADER_PATTERNS` in `volumes/volume-N/config.py`. Expect these to change:
 
 - `VOLUME 1` → `VOLUME 2` / `VOLUME 3`
 - the interviewee names in `THOUGHTS FROM MODERN STOICS | <NAME> N`
@@ -291,11 +288,14 @@ Edit `HEADER_PATTERNS` at the top of the script. Expect these to change per volu
 
 Copy the odd capitalisation exactly as `--list-headers` prints it.
 
-Then rebuild the glued-word table. **Do not reuse Volume 1's** — different text,
-different names, different Latin:
+Then rebuild the glued-word table. **Do not reuse another volume's** — different
+text, different names, different Latin. List against a *first pass*, not the raw
+file, or half the candidates will be hyphenation fragments the repair removes
+anyway:
 
 ```bash
-python3 tao_of_seneca_fix.py --list-glued "vol2.epub"
+python3 tao_of_seneca_fix.py "vol2.epub" pass1.epub --config volumes/volume-2/config.py
+python3 tao_of_seneca_fix.py --list-glued pass1.epub --config volumes/volume-2/config.py
 ```
 
 It prints ready-to-paste `'token': 'replacement',` lines with an occurrence count.
