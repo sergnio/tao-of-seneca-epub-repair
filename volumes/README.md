@@ -4,9 +4,17 @@ One folder per volume, holding the repaired `.epub`.
 
 | Volume | Source | Status |
 |---|---|---|
-| 1 | Lighten PDF Converter output of the print PDF | repaired |
-| 2 | not yet obtained | — |
-| 3 | not yet obtained | — |
+| 1 | CleverPDF conversion of the print PDF | repaired |
+| 2 | PDF obtained from tim.blog | awaiting conversion |
+| 3 | PDF obtained from tim.blog | awaiting conversion |
+
+Source PDFs, straight from Tim's page:
+
+    https://tim.blog/wp-content/uploads/2017/07/taoofseneca_vol2.pdf   4.1 MB
+    https://tim.blog/wp-content/uploads/2017/07/taoofseneca_vol3.pdf   4.4 MB
+
+Convert each with CleverPDF (PDF to EPUB), the service that produced volume 1, so
+the structure the script expects is the structure you get.
 
 Originals are deliberately not committed — the repair is reproducible from any
 copy of the source EPUB by running the script.
@@ -25,6 +33,6 @@ must be rebuilt by hand before the script will do the right thing:
 `../FIXES.md` walks through both, with the traps that produce confident wrong
 answers (`Hecato` is not "He cato").
 
-The script also assumes the Lighten PDF Converter layout (`OEBPS/Text/N.html`, one
+The script also assumes the CleverPDF layout (`OEBPS/Text/N.html`, one
 paragraph per line ending in `<br/>`). A conversion that emits one file per page
 with each page as a single `<p>` blob needs a different approach entirely.

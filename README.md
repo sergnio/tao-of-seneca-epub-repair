@@ -3,7 +3,7 @@
 Repairs a PDF-to-EPUB conversion of *The Tao of Seneca* (Tim Ferriss's free
 compilation of Seneca's *Moral Letters to Lucilius*).
 
-The conversion was done by Lighten PDF Converter from the print PDF, and it carried
+The conversion was done by CleverPDF's online converter from the print PDF, and it carried
 the print layout across literally: running page headers landed in the middle of
 sentences, page breaks became paragraph breaks, and words hyphenated across a line
 break stayed broken. This repository holds the script that undoes all of it and the
@@ -76,14 +76,44 @@ tao_of_seneca_fix.py                              the repair, all eight passes
 FIXES.md                                          what was wrong and how each fix decides
 volumes/volume-1/tao-of-seneca-vol1-repaired.epub
 volumes/README.md                                 per-volume notes and status
+LICENSE                                           MIT, scoped to the code and docs
+NOTICE                                            credit and rights for the book itself
 ```
 
-## A note on the book
+## License
 
-*The Tao of Seneca* is given away free by Tim Ferriss at
-[tim.blog/2017/07/06/tao-of-seneca](https://tim.blog/2017/07/06/tao-of-seneca/).
-Seneca's letters in the Richard Gummere translation are public domain; the
-compilation around them — foreword, commissioned interviews, artwork, design — is
-not. This repository is private for that reason: free to download is not the same as
-free to redistribute. If you want to make it public, drop the `volumes/` EPUBs and
-publish the script and notes on their own.
+The script and the documentation are MIT — use them for anything.
+
+**The MIT license does not cover the ebook under `volumes/`.** That is Tim Ferriss's
+book, not mine, and I have no rights to grant in it. See `NOTICE` for the full
+statement. Short version: all credit for the book goes to Tim Ferriss and its
+contributors, the Gummere translation of Seneca underneath it is public domain, and
+the repaired file is here because his download page says sharing is encouraged.
+
+Please get the book from [his page](https://tim.blog/2017/07/06/tao-of-seneca/)
+rather than from here. It is free, and going to the source supports the person who
+made it.
+
+## Where the broken EPUB came from
+
+Worth recording, because reproducing the repair means reproducing the conversion.
+
+The source EPUB was produced by [CleverPDF](https://www.cleverpdf.com/)'s online
+PDF-to-EPUB converter. It wrote its own server-side output path into the title
+field, which is how we know:
+
+```xml
+<dc:title>D:\wwwroot\cleverpdf-web\182870\Tao of Seneca v1.epub</dc:title>
+<meta name="Lighten PDF Converter version" content="5.2.0" />
+```
+
+Two things in that file are misleading and cost me time:
+
+- `dc:date modification` reads `2016-12-09`, seven months *before* the source PDFs
+  were produced (2017-06-26). It is the converter's build date, not a conversion
+  date.
+- The zip's directory entries are stamped seven hours behind its file entries — a
+  timezone bug in the converter's zip writer.
+
+To repair another volume, convert its PDF with the same service so the structure
+matches. A different converter means different artifacts; see `volumes/README.md`.

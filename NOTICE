@@ -1,0 +1,40 @@
+NOTICE
+======
+
+The book
+--------
+
+*The Tao of Seneca* was compiled, edited and published by Tim Ferriss, who
+gives it away for free:
+
+    https://tim.blog/2017/07/06/tao-of-seneca/
+
+All credit for the book belongs to him and to its contributors — the foreword,
+the commissioned interviews with modern Stoics, the artwork and the design are
+theirs, not mine. The book is Copyright (c) Tim Ferriss, all rights reserved.
+His download page states "Sharing is encouraged", and the repaired EPUB under
+volumes/ is shared here on that basis.
+
+I claim no ownership of the book and grant no rights to it. The MIT license in
+this repository covers only the repair script and the notes around it. If you
+want the book, please get it from Tim's page above — he is giving it away, and
+going to the source costs you nothing and supports the person who made it.
+
+If anyone representing Tim Ferriss would prefer the ebook files not be hosted
+here, open an issue and I will remove them.
+
+Seneca's letters
+----------------
+
+The underlying text is Seneca's *Moral Letters to Lucilius* in the English
+translation by Richard Mott Gummere, published by Loeb Classical Library
+1917–1925. That translation is in the public domain.
+
+What is mine
+------------
+
+Only `tao_of_seneca_fix.py` and the documentation describing it. The repaired
+EPUB is a derivative of Tim's book: the same words he published, with the
+artifacts of a bad PDF-to-EPUB conversion removed. No text was added, removed
+or rewritten — a whitespace-stripped comparison against the unrepaired file
+comes out character-identical.
